@@ -25,7 +25,7 @@ fn main() {
                                          e.path().to_str().unwrap(),
                                          path.as_path().with_extension("srt").to_str().unwrap());
                             } else {
-                                println!("-! El archivo ya tiene el nombre correcto");
+                                println!(" = El archivo ya tiene el nombre correcto");
                             }
                             return Ok(())
                         }

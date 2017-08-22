@@ -1,2 +1,7 @@
 /target/
 **/*.rs.bk
+*~
+*.mkv
+*.mp4
+*.avi
+*.srt
