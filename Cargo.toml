@@ -4,6 +4,4 @@ version = "0.1.0"
 authors = ["ignaciocaamanio <ignacio167@gmail.com>"]
 
 [dependencies]
-regex=''
-glob=''
-globset=""
+regex=""

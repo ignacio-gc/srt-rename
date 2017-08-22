@@ -1,39 +1,61 @@
 extern crate regex;
-extern crate glob;
-//extern crate globset;
+use std::io;
+use std::fs;
+use std::path::PathBuf;
 use regex::Regex;
-use glob::glob;
-use glob::glob_with;
-use glob::MatchOptions;
-//use globset::{Glob, GlobSetBuilder};
+use regex::RegexBuilder;
 
 fn main() {
 
-    let re = Regex::new(r".*([sS][0-9][0-9][eE][0-9][0-9]).*").unwrap();
+    fn find_srt_and_rename(path: PathBuf,
+                           re_srt: &Regex,
+                           season_and_episode: &Regex) -> io::Result<()> {
+        for entry in fs::read_dir("./").unwrap() {
+            match entry {
+                Ok(e) => {
 
-    for video in glob("*.avi").expect("Failed to read glob pattern") {
-        match video {
+                    let srt_path = e.path();
+
+                    if re_srt.is_match(&srt_path.to_str().unwrap())
+                        && season_and_episode.is_match(&srt_path.to_str().unwrap()
+                        ) {
+                            if e.path() != path.as_path().with_extension("srt").as_path() {
+                                std::fs::rename(e.path(), path.as_path().with_extension("srt").as_path())?;
+                                println!("{} --> {}",
+                                         e.path().to_str().unwrap(),
+                                         path.as_path().with_extension("srt").to_str().unwrap());
+                            } else {
+                                println!("-! El archivo ya tiene el nombre correcto");
+                            }
+                            return Ok(())
+                        }
+                },
+                Err(error) => { println!("{}", error ); }
+            }
+        }
+        println!("no se encontró un archivo de subtítulos", );
+        Ok(())
+    }
+
+    let re_season_episode = Regex::new(r".*([sS][0-9][0-9][eE][0-9][0-9]).*").unwrap();
+    let re_vid_ext = Regex::new(r".*(mkv|avi|mp4)$").unwrap();
+    let re_srt = Regex::new(r".*srt$").unwrap();
+    let paths: fs::ReadDir = fs::read_dir("./").unwrap();
+
+    for path in paths {
+        match path {
             Ok(path) => {
-                println!("path {}", path.to_str().unwrap());
-                if re.is_match(&path.to_str().unwrap()) {
+                println!(" - path actual: {:?}", path.file_name());
 
-                    let season_and_episode = re.captures(path.to_str().unwrap())
-                        .unwrap()
-                        .get(1)
-                        .map_or("", |m| m.as_str());
+                if re_vid_ext.is_match(&path.file_name().to_str().unwrap()) {
 
-                    let options = MatchOptions {
-                        case_sensitive: false,
-                        require_literal_separator: false,
-                        require_literal_leading_dot: false,
-                    };
+                    let season_and_episode = RegexBuilder::new(re_season_episode.captures(&path.file_name().to_str().unwrap())
+                                                               .unwrap()
+                                                               .get(1)
+                                                               .map_or("", |m| m.as_str())
+                    ).case_insensitive(true).build().unwrap();
 
-                    let str_glob = format!("*{}*.srt", season_and_episode);
-                    println!("{}", str_glob);
-
-                    for srt in glob_with(&str_glob, &options).expect("No srt file") {
-                        std::fs::rename(srt.unwrap(), path.with_extension("srt")).unwrap();
-                    }
+                    find_srt_and_rename(path.path(), &re_srt, &season_and_episode).unwrap();
                 }
             },
             Err(e) => println!("{:?}", e)
